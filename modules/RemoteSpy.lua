@@ -67,7 +67,8 @@ nmcTrampoline = hookMetaMethod(game, "__namecall", function(...)
     if remotesViewing[instance.ClassName] and instance ~= remoteDataEvent and remoteMethods[method] then
         local remote = currentRemotes[instance]
         local vargs = {select(2, ...)}
-            
+
+        -- Ensure the remote object is properly set up and used
         if not remote then
             remote = Remote.new(instance)
             currentRemotes[instance] = remote
@@ -98,7 +99,6 @@ nmcTrampoline = hookMetaMethod(game, "__namecall", function(...)
 end)
 
 -- vuln fix
-
 local pcall = pcall
 
 local function checkPermission(instance)
@@ -108,8 +108,9 @@ end
 for _name, hook in pairs(methodHooks) do
     local originalMethod
     originalMethod = hookFunction(hook, newCClosure(function(...)
-        local instance = ...
+        local instance = ...  -- Gets the first argument passed into the function (typically the remote)
 
+        -- Ensure we're working with valid instances
         if typeof(instance) ~= "Instance" then
             return originalMethod(...)
         end
@@ -119,15 +120,17 @@ for _name, hook in pairs(methodHooks) do
             if (not success) then return originalMethod(...) end
         end
 
+        -- Check if the instance matches the specified remote type
         if instance.ClassName == _name and remotesViewing[instance.ClassName] and instance ~= remoteDataEvent then
             local remote = currentRemotes[instance]
-            local vargs = {select(2, ...)}
+            local vargs = {select(2, ...)}  -- Get the arguments passed to the remote method
 
             if not remote then
                 remote = Remote.new(instance)
                 currentRemotes[instance] = remote
             end
 
+            -- Ensure we're handling ignored and blocked remote args properly
             local remoteIgnored = remote.Ignored 
             local argsIgnored = remote:AreArgsIgnored(vargs)
             
@@ -150,6 +153,7 @@ for _name, hook in pairs(methodHooks) do
         return originalMethod(...)
     end))
 
+    -- Storing hooks to handle overridden methods
     oh.Hooks[originalMethod] = hook
 end
 
