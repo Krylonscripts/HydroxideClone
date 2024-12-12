@@ -23,13 +23,13 @@ local function compareUpvalue(query, upvalue, ignore)
             return (instanceName == query or instanceName:find(query))
         end
 
-        return toString(upvalue) == query
+        return tostring(upvalue) == query
     elseif upvalueType == "function" then
         local closureName = getInfo(upvalue).name or ''
         return query == closureName or closureName:lower():find(query:lower())
     end
 
-    return stringCheck or numberCheck or userDataCheck
+    return stringCheck or numberCheck
 end
 
 local function scan(query, deepSearch)
@@ -39,6 +39,11 @@ local function scan(query, deepSearch)
         if type(closure) == "function" and not isXClosure(closure) and not upvalues[closure] then
             for index, value in pairs(getUpvalues(closure)) do
                 local valueType = type(value)
+
+                -- Unlock the upvalues table if it's readonly
+                if getmetatable(upvalues) and getmetatable(upvalues).__newindex then
+                    setreadonly(upvalues, false)  -- Unlock if readonly
+                end
 
                 if valueType ~= "table" and compareUpvalue(query, value) then
                     local storage = upvalues[closure]
